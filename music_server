@@ -1,0 +1,154 @@
+local speakers = { peripheral.find("speaker") }
+local modem = peripheral.find("modem")
+
+if not modem then
+    print("No modem!")
+    return
+end
+
+rednet.open(peripheral.getName(modem))
+
+local dfpwm = require("cc.audio.dfpwm")
+
+local playing = false
+local stopFlag = false
+local currentTrack = "Nothing"
+
+local function loadSongs()
+    local songs = {}
+
+    local f = fs.open("playlist.txt", "r")
+
+    if not f then
+        return songs
+    end
+
+    while true do
+        local line = f.readLine()
+        if not line then break end
+
+        local name, url = line:match("^(.-)|(.*)$")
+
+        if name and url then
+            table.insert(songs,{
+                name=name,
+                url=url
+            })
+        end
+    end
+
+    f.close()
+
+    return songs
+end
+
+local function download(url)
+    local h = http.get(url,nil,true)
+
+    if not h then
+        return false
+    end
+
+    local f = fs.open("temp.dfpwm","wb")
+    f.write(h.readAll())
+    f.close()
+
+    h.close()
+
+    return true
+end
+
+local function playSong(song)
+    stopFlag = false
+    playing = true
+    currentTrack = song.name
+
+    if not download(song.url) then
+        playing = false
+        currentTrack = "Error"
+        return
+    end
+
+    local decoder = dfpwm.make_decoder()
+    local file = fs.open("temp.dfpwm","rb")
+
+    while not stopFlag do
+        local chunk = file.read(16*1024)
+
+        if not chunk then
+            break
+        end
+
+        local buffer = decoder(chunk)
+
+        local ok = false
+
+        while not ok and not stopFlag do
+            ok = true
+
+            for _,speaker in ipairs(speakers) do
+                if not speaker.playAudio(buffer) then
+                    ok = false
+                end
+            end
+
+            if not ok then
+                os.pullEvent("speaker_audio_empty")
+            end
+        end
+    end
+
+    file.close()
+
+    playing = false
+    currentTrack = "Nothing"
+end
+
+parallel.waitForAny(
+
+function()
+    while true do
+        local id,msg = rednet.receive()
+
+        local songs = loadSongs()
+
+        if msg == "list" then
+            local names = {}
+
+            for i,v in ipairs(songs) do
+                names[i] = v.name
+            end
+
+            rednet.send(id,textutils.serialize(names))
+
+        elseif msg == "status" then
+            rednet.send(id,currentTrack)
+
+        elseif msg == "stop" then
+            stopFlag = true
+
+        elseif string.sub(msg,1,5) == "play:" then
+
+            local n = tonumber(string.sub(msg,6))
+
+            if songs[n] and not playing then
+                parallel.waitForAny(
+                    function()
+                        playSong(songs[n])
+                    end,
+                    function()
+                        while playing do sleep(1) end
+                    end
+                )
+            end
+        end
+    end
+end,
+
+function()
+    while true do
+        sleep(1000)
+    end
+end
+
+)
