@@ -121,20 +121,26 @@ local function playSong(index)
     local file = fs.open(filename, "rb")
 
     while true do
-        local chunk = file.read(16 * 1024)
+    local chunk = file.read(16 * 1024)
+    if not chunk then break end
 
-        if not chunk then
-            break
+    local buffer = decoder(chunk)
+
+    local ok = false
+
+    while not ok do
+        ok = true
+
+        for _, speaker in ipairs(speakers) do
+            if not speaker.playAudio(buffer) then
+                ok = false
+            end
         end
 
-        local buffer = decoder(chunk)
-
-        while not speaker.playAudio(buffer) do
+        if not ok then
             os.pullEvent("speaker_audio_empty")
         end
     end
-
-    file.close()
 end
 
 while true do
