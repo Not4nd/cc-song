@@ -1,178 +1,196 @@
-local speaker = peripheral.find("speaker")
+local speakers = { peripheral.find("speaker") }
 
-if not speaker then
-    print("Speaker not found!")
-    return
+if #speakers == 0 then
+print("Колонки не найдены!")
+return
 end
 
 local dfpwm = require("cc.audio.dfpwm")
 local PLAYLIST = "playlist.txt"
 
 local function loadPlaylist()
-    local songs = {}
+local songs = {}
 
-    if fs.exists(PLAYLIST) then
-        local f = fs.open(PLAYLIST, "r")
+```
+if fs.exists(PLAYLIST) then
+    local file = fs.open(PLAYLIST, "r")
 
-        while true do
-            local line = f.readLine()
-            if not line then break end
+    while true do
+        local line = file.readLine()
+        if not line then break end
 
-            local name, url = line:match("(.+)|(.+)")
-
-            if name and url then
-                table.insert(songs, {
-                    name = name,
-                    url = url
-                })
-            end
+        local name, url = line:match("(.+)|(.+)")
+        if name and url then
+            table.insert(songs, {
+                name = name,
+                url = url
+            })
         end
-
-        f.close()
     end
 
-    return songs
+    file.close()
+end
+
+return songs
+```
+
 end
 
 local function savePlaylist(songs)
-    local f = fs.open(PLAYLIST, "w")
+local file = fs.open(PLAYLIST, "w")
 
-    for _, song in ipairs(songs) do
-        f.writeLine(song.name .. "|" .. song.url)
-    end
+```
+for _, song in ipairs(songs) do
+    file.writeLine(song.name .. "|" .. song.url)
+end
 
-    f.close()
+file.close()
+```
+
 end
 
 local songs = loadPlaylist()
 
-local function addSong()
-    write("Name: ")
-    local name = read()
+local function listSongs()
+print()
 
-    write("URL: ")
-    local url = read()
-
-    table.insert(songs, {
-        name = name,
-        url = url
-    })
-
-    savePlaylist(songs)
-
-    print("Track added.")
+```
+if #songs == 0 then
+    print("Плейлист пуст.")
+    return
 end
 
-local function listSongs()
-    print()
+for i, song in ipairs(songs) do
+    print(i .. ". " .. song.name)
+end
+```
 
-    if #songs == 0 then
-        print("Playlist empty.")
-        return
-    end
+end
 
-    for i, song in ipairs(songs) do
-        print(i .. ". " .. song.name)
-    end
+local function addSong()
+write("Название: ")
+local name = read()
+
+```
+write("URL: ")
+local url = read()
+
+table.insert(songs, {
+    name = name,
+    url = url
+})
+
+savePlaylist(songs)
+
+print("Добавлено.")
+```
+
 end
 
 local function deleteSong()
-    listSongs()
+listSongs()
 
-    write("Number: ")
-    local n = tonumber(read())
+```
+write("Номер: ")
+local n = tonumber(read())
 
-    if songs[n] then
-        table.remove(songs, n)
-        savePlaylist(songs)
-        print("Deleted.")
-    end
+if songs[n] then
+    table.remove(songs, n)
+    savePlaylist(songs)
+    print("Удалено.")
+end
+```
+
 end
 
-local function playSong(index)
-    local song = songs[index]
+local function playSong(song)
+print("Подключение...")
 
-    if not song then
-        print("No such Track.")
-        return
+```
+local response = http.get(song.url, nil, true)
+
+if not response then
+    print("Не удалось скачать трек.")
+    return
+end
+
+print("Играет: " .. song.name)
+
+local decoder = dfpwm.make_decoder()
+
+while true do
+    local chunk = response.read(16 * 1024)
+
+    if not chunk then
+        break
     end
-
-    print("Downloading: " .. song.name)
-
-    local response = http.get(song.url, nil, true)
-
-    if not response then
-        print("Download error.")
-        return
-    end
-
-    local data = response.readAll()
-    response.close()
-
-    local filename = "temp.dfpwm"
-
-    local f = fs.open(filename, "wb")
-    f.write(data)
-    f.close()
-
-    print("Playing: " .. song.name)
-
-    local decoder = dfpwm.make_decoder()
-    local file = fs.open(filename, "rb")
-
-    while true do
-    local chunk = file.read(16 * 1024)
-    if not chunk then break end
 
     local buffer = decoder(chunk)
 
-    local ok = false
+    local sent = false
 
-    while not ok do
-        ok = true
+    while not sent do
+        sent = true
 
         for _, speaker in ipairs(speakers) do
             if not speaker.playAudio(buffer) then
-                ok = false
+                sent = false
             end
         end
 
-        if not ok then
+        if not sent then
             os.pullEvent("speaker_audio_empty")
         end
     end
 end
 
+response.close()
+
+print("Трек завершён.")
+```
+
+end
+
 while true do
-    print()
-    print("=== MUSIC PLAYER ===")
-    print("1. Playlist")
-    print("2. Add")
-    print("3. Play")
-    print("4. Delete")
-    print("5. Exit")
+print()
+print("=== MUSIC PLAYER ===")
+print("1. Плейлист")
+print("2. Добавить")
+print("3. Играть")
+print("4. Удалить")
+print("5. Выход")
 
-    write("> ")
-    local choice = read()
+```
+write("> ")
+local choice = read()
 
-    if choice == "1" then
-        listSongs()
+if choice == "1" then
 
-    elseif choice == "2" then
-        addSong()
+    listSongs()
 
-    elseif choice == "3" then
-        listSongs()
+elseif choice == "2" then
 
-        write("Track number: ")
-        local n = tonumber(read())
+    addSong()
 
-        playSong(n)
+elseif choice == "3" then
 
-    elseif choice == "4" then
-        deleteSong()
+    listSongs()
 
-    elseif choice == "5" then
-        break
+    write("Номер трека: ")
+    local n = tonumber(read())
+
+    if songs[n] then
+        playSong(songs[n])
     end
+
+elseif choice == "4" then
+
+    deleteSong()
+
+elseif choice == "5" then
+
+    break
+end
+```
+
 end
