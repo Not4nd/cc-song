@@ -3,7 +3,7 @@ local PLAYLIST = "playlist.txt"
 local speakers = { peripheral.find("speaker") }
 
 if #speakers == 0 then
-    print("Не найден ни один Speaker!")
+    print("Mot found any Speaker!")
     return
 end
 
@@ -79,7 +79,7 @@ local function deleteSong()
         print(i .. ". " .. song.name)
     end
 
-    write("Удалить №: ")
+    write("Delete №: ")
     local n = tonumber(read())
 
     if songs[n] then
@@ -124,7 +124,7 @@ local function playSong(song)
         return
     end
 
-    print("Играет: " .. song.name)
+    print("Playing: " .. song.name)
 
     local decoder = dfpwm.make_decoder()
     local file = fs.open("temp.dfpwm", "rb")
@@ -162,7 +162,7 @@ end
 
 while true do
     print()
-    print("==== MUSIC PLAYER ====")
+    print("==== ExePlayer's PLAYER ====")
     print("Speakers: " .. #speakers)
     print("1. Playlist")
     print("2. Add track")
@@ -183,7 +183,7 @@ while true do
     elseif choice == "3" then
         listSongs()
 
-        write("Номер трека: ")
+        write("Track number: ")
         local n = tonumber(read())
 
         if songs[n] then
