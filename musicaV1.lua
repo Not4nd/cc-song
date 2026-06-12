@@ -3,7 +3,7 @@ local PLAYLIST = "playlist.txt"
 local speakers = { peripheral.find("speaker") }
 
 if #speakers == 0 then
-    print("Mot found any Speaker!")
+    print("Not found any Speaker!")
     return
 end
 
