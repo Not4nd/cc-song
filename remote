@@ -1,0 +1,68 @@
+local modem = peripheral.find("modem")
+
+if not modem then
+    print("No modem!")
+    return
+end
+
+rednet.open(peripheral.getName(modem))
+
+write("Server ID: ")
+local server = tonumber(read())
+
+while true do
+    term.clear()
+    term.setCursorPos(1,1)
+
+    print("=== Remote Player ===")
+    print("1. Playlist")
+    print("2. Stop")
+    print("3. Current Track")
+    print("4. Exit")
+    print()
+
+    local c = read()
+
+    if c == "1" then
+
+        rednet.send(server,"list")
+
+        local _,data = rednet.receive(3)
+
+        if data then
+
+            local songs = textutils.unserialize(data)
+
+            for i,v in ipairs(songs) do
+                print(i..". "..v)
+            end
+
+            print()
+            write("Track: ")
+
+            local n = tonumber(read())
+
+            if n then
+                rednet.send(server,"play:"..n)
+            end
+        end
+
+    elseif c == "2" then
+
+        rednet.send(server,"stop")
+
+    elseif c == "3" then
+
+        rednet.send(server,"status")
+
+        local _,track = rednet.receive(2)
+
+        if track then
+            print(track)
+            read()
+        end
+
+    elseif c == "4" then
+        break
+    end
+end
