@@ -1,6 +1,10 @@
 local p = peripheral.wrap("back")
 local inv = p.getInventory()
 
-for k,v in pairs(inv) do
-    print(k)
+for slot,item in pairs(inv.list()) do
+    if item.name == "minecraft:cobblestone" then
+        local moved = inv.pushItems("right", slot)
+
+        print("Moved", moved)
+    end
 end
