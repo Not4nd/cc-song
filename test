@@ -1,0 +1,12 @@
+local p = peripheral.wrap("back")
+local inv = p.getInventory()
+
+local target = "ИМЯ_СУНДУКА"
+
+for slot,item in pairs(inv.list()) do
+    if item.name == "minecraft:cobblestone" then
+        local moved = inv.pushItems(target, slot)
+
+        print("Moved:", moved)
+    end
+end
