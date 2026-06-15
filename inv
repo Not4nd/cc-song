@@ -1,0 +1,6 @@
+local p = peripheral.wrap("back")
+local inv = p.getInventory()
+
+for k,v in pairs(inv) do
+    print(k)
+end
