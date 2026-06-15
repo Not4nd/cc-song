@@ -1,0 +1,31 @@
+local p = peripheral.wrap("back")
+local inv = p.getInventory()
+
+local TRASH = {
+    ["minecraft:cobblestone"] = true,
+    ["minecraft:dirt"] = true,
+    ["minecraft:gravel"] = true,
+    ["minecraft:andesite"] = true,
+    ["minecraft:diorite"] = true,
+    ["minecraft:granite"] = true,
+    ["minecraft:netherrack"] = true,
+}
+
+while true do
+    local items = inv.list()
+
+    for slot, item in pairs(items) do
+        if TRASH[item.name] then
+            print("Trash found: "..item.name)
+
+            -- Сначала попробуем выбросить
+            if inv.dropItems then
+                inv.dropItems(slot)
+            elseif inv.drop then
+                inv.drop(slot)
+            end
+        end
+    end
+
+    sleep(1)
+end
