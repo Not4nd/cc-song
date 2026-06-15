@@ -1,0 +1,6 @@
+local p = peripheral.wrap("back")
+local inv = p.getInventory()
+
+for slot,item in pairs(inv.list()) do
+    print(slot, item.name, item.count)
+end
